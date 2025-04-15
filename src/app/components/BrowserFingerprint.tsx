@@ -3,10 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import FingerprintJS from '@fingerprintjs/fingerprintjs';
 
-// Props for the BrowserFingerprint component
-interface BrowserFingerprintProps {
-  // No props needed for this component
-}
+// Using Record<never, never> to properly define an empty props object
+type BrowserFingerprintProps = Record<string, never>;
 
 interface FingerprintData {
   visitorId: string;
