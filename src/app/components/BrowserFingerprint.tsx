@@ -6,9 +6,10 @@ import FingerprintJS from '@fingerprintjs/fingerprintjs';
 // Using Record<never, never> to properly define an empty props object
 type BrowserFingerprintProps = Record<string, never>;
 
+// Define a more flexible interface to match the FingerprintJS library's structure
 interface FingerprintData {
   visitorId: string;
-  components: Record<string, { value: unknown }>;
+  components: Record<string, any>;
 }
 
 const BrowserFingerprint: React.FC<BrowserFingerprintProps> = () => {
@@ -49,11 +50,25 @@ const BrowserFingerprint: React.FC<BrowserFingerprintProps> = () => {
   };
 
   // Format component values for display
-  const formatValue = (value: unknown): string => {
-    if (value === null || value === undefined) return 'N/A';
-    if (typeof value === 'boolean') return value ? 'Yes' : 'No';
-    if (typeof value === 'object') return JSON.stringify(value);
-    return String(value);
+  const formatValue = (component: any): string => {
+    // Handle null or undefined
+    if (component === null || component === undefined) return 'N/A';
+
+    // Handle FingerprintJS component structure
+    if (component.value !== undefined) {
+      const value = component.value;
+      if (value === null || value === undefined) return 'N/A';
+      if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+      if (typeof value === 'object') return JSON.stringify(value);
+      return String(value);
+    }
+
+    // Handle error case
+    if (component.error) return `Error: ${component.error}`;
+
+    // Fallback for other structures
+    if (typeof component === 'object') return JSON.stringify(component);
+    return String(component);
   };
 
   // Get a subset of interesting components to display
@@ -129,7 +144,7 @@ const BrowserFingerprint: React.FC<BrowserFingerprintProps> = () => {
                       <tr key={key}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{key}</td>
                         <td className="px-6 py-4 text-sm text-gray-500 max-w-md truncate">
-                          {formatValue(fingerprint.components[key]?.value)}
+                          {formatValue(fingerprint.components[key])}
                         </td>
                       </tr>
                     ))}
