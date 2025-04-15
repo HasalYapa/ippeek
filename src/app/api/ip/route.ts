@@ -13,6 +13,13 @@ export interface IPInfo {
   longitude: number;
   timezone: string;
   org: string; // ISP information
+  debug?: {
+    headers: {
+      [key: string]: string;
+    };
+    source: string;
+    error?: string;
+  };
 }
 
 // Cache to avoid hitting rate limits
@@ -20,7 +27,7 @@ let cachedData: IPInfo | null = null;
 let cacheTime = 0;
 const CACHE_DURATION = 60 * 1000; // 1 minute cache
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     // Check if we have cached data that's still valid
     const now = Date.now();
@@ -28,19 +35,32 @@ export async function GET() {
       return NextResponse.json(cachedData);
     }
 
-    // Step 1: Get the IP address using ipify
-    const ipResponse = await fetch('https://api.ipify.org?format=json');
+    // Step 1: Get the client's IP address from request headers
+    // Try to get the IP from various headers that might contain the client IP
+    const forwarded = request.headers.get('x-forwarded-for');
+    const realIp = request.headers.get('x-real-ip');
+    const clientIp = forwarded ? forwarded.split(',')[0].trim() : realIp;
 
-    if (!ipResponse.ok) {
-      throw new Error('Failed to fetch IP address');
+    // If we couldn't get the IP from headers, fall back to ipify
+    let ip;
+    if (clientIp) {
+      ip = clientIp;
+      console.log('Using IP from headers:', ip);
+    } else {
+      const ipResponse = await fetch('https://api.ipify.org?format=json');
+
+      if (!ipResponse.ok) {
+        throw new Error('Failed to fetch IP address');
+      }
+
+      const ipData = await ipResponse.json();
+      ip = ipData.ip;
+      console.log('Using IP from ipify:', ip);
     }
-
-    const ipData = await ipResponse.json();
-    const ip = ipData.ip;
 
     // Step 2: Get geolocation data using ipgeolocation.io (free tier)
     // Note: Free tier has a limit of 1000 requests per day
-    const apiKey = process.env.IPGEOLOCATION_API_KEY || '';
+    const apiKey = process.env.IPGEOLOCATION_API_KEY || 'e1ac3c5c1ecc47bfa3803233a9e73580';
     const geoResponse = await fetch(`https://api.ipgeolocation.io/ipgeo?ip=${ip}&apiKey=${apiKey}`);
 
     // Fallback to ipapi.co if ipgeolocation.io fails or rate limit is reached
@@ -126,14 +146,37 @@ export async function GET() {
     // Update cache time
     cacheTime = now;
 
-    // Return the IP information
-    return NextResponse.json(cachedData);
+    // Add debug information to the response
+    const debugInfo = {
+      headers: {
+        'x-forwarded-for': request.headers.get('x-forwarded-for') || 'not present',
+        'x-real-ip': request.headers.get('x-real-ip') || 'not present',
+        'cf-connecting-ip': request.headers.get('cf-connecting-ip') || 'not present',
+        'true-client-ip': request.headers.get('true-client-ip') || 'not present',
+      },
+      source: clientIp ? 'headers' : 'ipify',
+    };
+
+    // Return the IP information with debug data
+    return NextResponse.json({ ...cachedData, debug: debugInfo });
   } catch (error) {
     console.error('Error fetching IP information:', error);
 
     // If we have cached data, return it even if it's expired
     if (cachedData) {
-      return NextResponse.json(cachedData);
+      // Add debug information
+      const debugInfo = {
+        headers: {
+          'x-forwarded-for': request.headers.get('x-forwarded-for') || 'not present',
+          'x-real-ip': request.headers.get('x-real-ip') || 'not present',
+          'cf-connecting-ip': request.headers.get('cf-connecting-ip') || 'not present',
+          'true-client-ip': request.headers.get('true-client-ip') || 'not present',
+        },
+        source: 'cached',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+
+      return NextResponse.json({ ...cachedData, debug: debugInfo });
     }
 
     // Fallback to mock data if all else fails
@@ -151,6 +194,18 @@ export async function GET() {
       org: 'Example ISP'
     };
 
-    return NextResponse.json(mockData);
+    // Add debug information
+    const debugInfo = {
+      headers: {
+        'x-forwarded-for': request.headers.get('x-forwarded-for') || 'not present',
+        'x-real-ip': request.headers.get('x-real-ip') || 'not present',
+        'cf-connecting-ip': request.headers.get('cf-connecting-ip') || 'not present',
+        'true-client-ip': request.headers.get('true-client-ip') || 'not present',
+      },
+      source: 'mock',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+
+    return NextResponse.json({ ...mockData, debug: debugInfo });
   }
 }
