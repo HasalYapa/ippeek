@@ -2,14 +2,17 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import IPInfoCard from './components/IPInfoCard';
 import AdBanner from './components/AdBanner';
-import LocationMap from './components/LocationMap';
-import BlacklistChecker from './components/BlacklistChecker';
-import NetworkTools from './components/NetworkTools';
-import BrowserFingerprint from './components/BrowserFingerprint';
-import VPNDetector from './components/VPNDetector';
 import { IPInfo } from './api/ip/route';
+
+// Dynamically import components that use browser-specific APIs
+const LocationMap = dynamic(() => import('./components/LocationMap'), { ssr: false });
+const BlacklistChecker = dynamic(() => import('./components/BlacklistChecker'), { ssr: false });
+const NetworkTools = dynamic(() => import('./components/NetworkTools'), { ssr: false });
+const BrowserFingerprint = dynamic(() => import('./components/BrowserFingerprint'), { ssr: false });
+const VPNDetector = dynamic(() => import('./components/VPNDetector'), { ssr: false });
 
 export default function Home() {
   const [ipInfo, setIpInfo] = useState<IPInfo | null>(null);
@@ -18,13 +21,14 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Only run on the client side
-    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
-      return;
-    }
+  // Import the ClientOnly component
+  const ClientOnly = dynamic(() => import('./components/ClientOnly'), { ssr: false });
 
+  useEffect(() => {
+    // This useEffect will only run on the client side
     const detectDeviceType = () => {
+      if (typeof navigator === 'undefined') return 'Desktop';
+
       const ua = navigator.userAgent;
       if (/mobile/i.test(ua)) return 'Mobile';
       if (/tablet/i.test(ua)) return 'Tablet';
@@ -43,8 +47,12 @@ export default function Home() {
 
         const data = await response.json();
         setIpInfo(data);
-        setUserAgent(navigator.userAgent);
-        setDeviceType(detectDeviceType());
+
+        // Only set browser-specific information on the client side
+        if (typeof navigator !== 'undefined') {
+          setUserAgent(navigator.userAgent);
+          setDeviceType(detectDeviceType());
+        }
       } catch (err) {
         console.error('Error fetching IP info:', err);
         setError('Failed to fetch your IP information');
@@ -93,12 +101,14 @@ export default function Home() {
             {ipInfo && (
               <div className="mt-6">
                 <h2 className="text-xl font-semibold text-gray-800 mb-4">IP Location Map</h2>
-                <LocationMap
-                  latitude={ipInfo.latitude}
-                  longitude={ipInfo.longitude}
-                  city={ipInfo.city}
-                  country={ipInfo.country_name}
-                />
+                <ClientOnly fallback={<div className="h-64 bg-gray-100 flex items-center justify-center"><p>Loading map...</p></div>}>
+                  <LocationMap
+                    latitude={ipInfo.latitude}
+                    longitude={ipInfo.longitude}
+                    city={ipInfo.city}
+                    country={ipInfo.country_name}
+                  />
+                </ClientOnly>
               </div>
             )}
 
@@ -112,23 +122,31 @@ export default function Home() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* VPN Detection */}
                 {ipInfo && (
-                  <VPNDetector ip={ipInfo.ip} />
+                  <ClientOnly fallback={<div className="h-64 bg-gray-100 flex items-center justify-center"><p>Loading VPN detection...</p></div>}>
+                    <VPNDetector ip={ipInfo.ip} />
+                  </ClientOnly>
                 )}
 
                 {/* Blacklist Checker */}
                 {ipInfo && (
-                  <BlacklistChecker ip={ipInfo.ip} />
+                  <ClientOnly fallback={<div className="h-64 bg-gray-100 flex items-center justify-center"><p>Loading blacklist checker...</p></div>}>
+                    <BlacklistChecker ip={ipInfo.ip} />
+                  </ClientOnly>
                 )}
               </div>
 
               <div className="mt-6">
                 {/* Network Tools */}
-                <NetworkTools defaultTarget={ipInfo?.ip} />
+                <ClientOnly fallback={<div className="h-64 bg-gray-100 flex items-center justify-center"><p>Loading network tools...</p></div>}>
+                  <NetworkTools defaultTarget={ipInfo?.ip} />
+                </ClientOnly>
               </div>
 
               <div className="mt-6">
                 {/* Browser Fingerprint */}
-                <BrowserFingerprint />
+                <ClientOnly fallback={<div className="h-64 bg-gray-100 flex items-center justify-center"><p>Loading browser fingerprint...</p></div>}>
+                  <BrowserFingerprint />
+                </ClientOnly>
               </div>
             </div>
 
