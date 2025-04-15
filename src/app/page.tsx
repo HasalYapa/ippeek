@@ -5,6 +5,8 @@ import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import IPInfoCard from './components/IPInfoCard';
 import AdBanner from './components/AdBanner';
+import AdScript from './components/AdScript';
+import AdContainer from './components/AdContainer';
 import { IPInfo } from './api/ip/route';
 
 // Dynamically import components that use browser-specific APIs
@@ -15,6 +17,8 @@ const BrowserFingerprint = dynamic(() => import('./components/BrowserFingerprint
 const VPNDetector = dynamic(() => import('./components/VPNDetector'), { ssr: false });
 
 export default function Home() {
+  // Load the ad script
+  const ClientOnly = dynamic(() => import('./components/ClientOnly'), { ssr: false });
   const [ipInfo, setIpInfo] = useState<IPInfo | null>(null);
   const [userAgent, setUserAgent] = useState<string>('');
   const [deviceType, setDeviceType] = useState<string>('');
@@ -73,7 +77,10 @@ export default function Home() {
             <Image src="/logo.svg" alt="IPPeek Logo" width={40} height={40} className="mr-2" />
             <h1 className="text-2xl md:text-3xl font-bold text-blue-600">IPPeek</h1>
           </div>
-          <AdBanner type="header" />
+          <ClientOnly>
+            <AdScript />
+            <AdContainer type="header" className="w-full h-24" />
+          </ClientOnly>
         </div>
       </header>
 
@@ -113,7 +120,9 @@ export default function Home() {
             )}
 
             {/* Inline ad */}
-            <AdBanner type="inline" />
+            <ClientOnly>
+              <AdContainer type="inline" className="w-full my-6" />
+            </ClientOnly>
 
             {/* Tabs for additional tools */}
             <div className="mt-8">
@@ -166,7 +175,9 @@ export default function Home() {
 
           {/* Sidebar with ad */}
           <div className="lg:w-1/3">
-            <AdBanner type="sidebar" />
+            <ClientOnly>
+              <AdContainer type="sidebar" className="w-full h-96" />
+            </ClientOnly>
           </div>
         </div>
       </main>
@@ -189,7 +200,9 @@ export default function Home() {
 
       {/* Sticky bottom ad for mobile */}
       <div className="lg:hidden">
-        <AdBanner type="sticky" />
+        <ClientOnly>
+          <AdContainer type="sticky" className="w-full h-16 fixed bottom-0 left-0 right-0 z-50" />
+        </ClientOnly>
       </div>
     </div>
   );
