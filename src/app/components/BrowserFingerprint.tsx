@@ -3,11 +3,14 @@
 import React, { useEffect, useState } from 'react';
 import FingerprintJS from '@fingerprintjs/fingerprintjs';
 
-interface BrowserFingerprintProps {}
+// Props for the BrowserFingerprint component
+interface BrowserFingerprintProps {
+  // No props needed for this component
+}
 
 interface FingerprintData {
   visitorId: string;
-  components: Record<string, any>;
+  components: Record<string, { value: unknown }>;
 }
 
 const BrowserFingerprint: React.FC<BrowserFingerprintProps> = () => {
@@ -20,14 +23,14 @@ const BrowserFingerprint: React.FC<BrowserFingerprintProps> = () => {
     const generateFingerprint = async () => {
       try {
         setIsLoading(true);
-        
+
         // Initialize the agent
         const fpPromise = FingerprintJS.load();
         const fp = await fpPromise;
-        
+
         // Get the visitor identifier
         const result = await fp.get();
-        
+
         setFingerprint({
           visitorId: result.visitorId,
           components: result.components
@@ -48,7 +51,7 @@ const BrowserFingerprint: React.FC<BrowserFingerprintProps> = () => {
   };
 
   // Format component values for display
-  const formatValue = (value: any): string => {
+  const formatValue = (value: unknown): string => {
     if (value === null || value === undefined) return 'N/A';
     if (typeof value === 'boolean') return value ? 'Yes' : 'No';
     if (typeof value === 'object') return JSON.stringify(value);
@@ -58,7 +61,7 @@ const BrowserFingerprint: React.FC<BrowserFingerprintProps> = () => {
   // Get a subset of interesting components to display
   const getInterestingComponents = () => {
     if (!fingerprint?.components) return [];
-    
+
     const interestingKeys = [
       'userAgent',
       'webdriver',
@@ -74,18 +77,18 @@ const BrowserFingerprint: React.FC<BrowserFingerprintProps> = () => {
       'touchSupport',
       'fonts'
     ];
-    
+
     return interestingKeys.filter(key => key in fingerprint.components);
   };
 
   return (
     <div className="bg-white shadow-md rounded-lg p-6 w-full">
       <h2 className="text-xl font-bold text-gray-800 mb-4">Browser Fingerprint</h2>
-      
+
       <p className="text-gray-600 mb-4">
         Your browser has a unique fingerprint that can be used to identify you across websites.
       </p>
-      
+
       {isLoading ? (
         <div className="flex items-center justify-center py-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -111,7 +114,7 @@ const BrowserFingerprint: React.FC<BrowserFingerprintProps> = () => {
               </button>
             </div>
           </div>
-          
+
           {showDetails && (
             <div className="mt-4">
               <h3 className="font-medium text-gray-700 mb-2">Fingerprint Components:</h3>

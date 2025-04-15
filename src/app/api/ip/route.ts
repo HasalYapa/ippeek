@@ -20,7 +20,7 @@ let cachedData: IPInfo | null = null;
 let cacheTime = 0;
 const CACHE_DURATION = 60 * 1000; // 1 minute cache
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     // Check if we have cached data that's still valid
     const now = Date.now();
