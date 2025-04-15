@@ -13,7 +13,7 @@ const nextConfig = {
   // Disable static optimization for pages that use browser APIs
   experimental: {
     // This ensures that pages with client-side features are not statically optimized
-    serverComponentsExternalPackages: ['dotted-map', 'leaflet']
+    serverExternalPackages: ['dotted-map', 'leaflet']
   },
 };
 

@@ -17,16 +17,13 @@ const BrowserFingerprint = dynamic(() => import('./components/BrowserFingerprint
 const VPNDetector = dynamic(() => import('./components/VPNDetector'), { ssr: false });
 
 export default function Home() {
-  // Load the ad script
+  // Import the ClientOnly component
   const ClientOnly = dynamic(() => import('./components/ClientOnly'), { ssr: false });
   const [ipInfo, setIpInfo] = useState<IPInfo | null>(null);
   const [userAgent, setUserAgent] = useState<string>('');
   const [deviceType, setDeviceType] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Import the ClientOnly component
-  const ClientOnly = dynamic(() => import('./components/ClientOnly'), { ssr: false });
 
   useEffect(() => {
     // This useEffect will only run on the client side
