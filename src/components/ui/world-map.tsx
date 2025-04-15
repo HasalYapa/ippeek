@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import { motion } from "motion/react";
 import DottedMap from "dotted-map";
 import Image from "next/image";
@@ -19,16 +19,34 @@ export default function WorldMap({
   lineColor = "#0ea5e9",
 }: MapProps) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const map = new DottedMap({ height: 100, grid: "diagonal" });
+  const [isClient, setIsClient] = useState(false);
+  const [svgMap, setSvgMap] = useState<string>('');
 
   const { theme } = useTheme();
 
-  const svgMap = map.getSVG({
-    radius: 0.22,
-    color: theme === "dark" ? "#FFFFFF40" : "#00000040",
-    shape: "circle",
-    backgroundColor: theme === "dark" ? "black" : "white",
-  });
+  useEffect(() => {
+    // Only run on the client side
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    setIsClient(true);
+
+    try {
+      const map = new DottedMap({ height: 100, grid: "diagonal" });
+
+      const svg = map.getSVG({
+        radius: 0.22,
+        color: theme === "dark" ? "#FFFFFF40" : "#00000040",
+        shape: "circle",
+        backgroundColor: theme === "dark" ? "black" : "white",
+      });
+
+      setSvgMap(svg);
+    } catch (error) {
+      console.error('Error generating map:', error);
+    }
+  }, [theme]);
 
   const projectPoint = (lat: number, lng: number) => {
     const x = (lng + 180) * (800 / 360);
@@ -44,6 +62,15 @@ export default function WorldMap({
     const midY = Math.min(start.y, end.y) - 50;
     return `M ${start.x} ${start.y} Q ${midX} ${midY} ${end.x} ${end.y}`;
   };
+
+  // Return a placeholder during server-side rendering
+  if (!isClient || !svgMap) {
+    return (
+      <div className="w-full aspect-[2/1] dark:bg-black bg-white rounded-lg relative font-sans flex items-center justify-center">
+        <p className="text-gray-500">Loading world map...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full aspect-[2/1] dark:bg-black bg-white rounded-lg relative font-sans">

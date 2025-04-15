@@ -19,6 +19,11 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Only run on the client side
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+      return;
+    }
+
     const detectDeviceType = () => {
       const ua = navigator.userAgent;
       if (/mobile/i.test(ua)) return 'Mobile';

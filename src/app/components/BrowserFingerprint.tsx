@@ -19,6 +19,11 @@ const BrowserFingerprint: React.FC<BrowserFingerprintProps> = () => {
   const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
+    // Only run on the client side
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     const generateFingerprint = async () => {
       try {
         setIsLoading(true);
